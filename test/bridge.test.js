@@ -283,6 +283,7 @@ test('short client IDs display once, route to upstream IDs and preserve manual c
   assert.equal(entries[0].id, 'OC · Test');
   assert.equal(entries[0].name, entries[0].id);
   assert.equal(prepare({ ...body, model: entries[0].id }, models).model.id, models[0].id);
+  assert.equal(prepare({ ...body, model: `custom-local:${entries[0].id}` }, models).model.id, models[0].id);
   assert.throws(() => prepare({ ...body, model: entries[0].id }, []), /available free/);
   const manual = { id: entries[0].id, apiKey: 'mine' };
   assert.deepEqual(mergeModels([manual], models, 'local', 'key'), [manual]);

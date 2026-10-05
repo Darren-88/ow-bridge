@@ -11,7 +11,10 @@ export class BridgeError extends Error {
 export function prepare(body, models) {
   if (!body || !Array.isArray(body.messages) || !body.messages.length)
     throw new BridgeError('messages must be a nonempty array');
-  const matches = models.filter(m => m.id === body.model || clientModelID(m) === body.model);
+  // WorkBuddy prefixes user-level custom model ids with "custom-local:" (CustomModelIdPrefix),
+  // so strip it before matching the ids we published.
+  const requested = typeof body.model === 'string' ? body.model.replace(/^custom-local:/, '') : body.model;
+  const matches = models.filter(m => m.id === requested || clientModelID(m) === requested);
   const model = matches.length === 1 ? matches[0] : undefined;
   if (!model) throw new BridgeError('Select an available free model from /v1/models', 400, 'model_not_found');
   if (body.n !== undefined && body.n !== 1) throw new BridgeError('Only n=1 is supported');
