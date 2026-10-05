@@ -100,5 +100,63 @@ function dismiss() { selected = null; renderModels(); renderDetails(); }
 document.addEventListener('click', e => { if (!e.target.closest('.model') && !e.target.closest('#details')) dismiss(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') dismiss(); });
 window.buddy.onDismiss(dismiss);
-window.buddy.onState(next => { state = next; render(); });
+window.buddy.onState(next => { state = next; render(); if (activeView === 'apps' && appConfigs) renderApps(); });
 render();
+
+let activeView = 'models', appConfigs = null, appLoading = false;
+function switchView(view) {
+  activeView = view;
+  $('view-models').hidden = view !== 'models';
+  $('view-apps').hidden = view !== 'apps';
+  $('nav-models').classList.toggle('active', view === 'models');
+  $('nav-apps').classList.toggle('active', view === 'apps');
+  if (view === 'apps') { appConfigs = null; appFeedback('', false); loadApps(); }
+}
+function appFeedback(text, error = false) { const el = $('app-feedback'); el.textContent = text; el.className = error ? 'error' : ''; el.hidden = !text; }
+async function loadApps() {
+  if (appLoading) return; appLoading = true; renderApps();
+  try {
+    const response = await window.buddy.action('app-configs');
+    if (!response.ok) throw new Error(response.error);
+    appConfigs = response.result; renderApps();
+  } catch (e) { appFeedback(e.message, true); }
+  finally { appLoading = false; renderApps(); }
+}
+async function copyText(text, ok) { try { await window.buddy.copy(text); appFeedback(ok || '已复制', false); } catch (e) { appFeedback('复制失败：' + e.message, true); } }
+function appCard(app) {
+  const card = element('div', 'app-card');
+  const head = element('div', 'app-head');
+  head.append(element('div', 'app-name', app.name));
+  head.append(element('span', 'app-tier ' + app.tier, app.tierLabel));
+  if (app.installed !== undefined) head.append(element('span', 'app-installed' + (app.installed ? ' yes' : ''), app.installed ? '已安装' : '未检测到'));
+  card.append(head);
+  card.append(element('p', 'app-desc', app.description));
+  if (app.id === 'workbuddy') {
+    const s = state.sync;
+    card.append(element('p', 'app-status', s?.error || `当前已同步 ${s?.count ?? 0} 个模型 · 在「模型与服务」页维护`));
+  }
+  if (app.note) card.append(element('p', 'app-note', app.note));
+  const actions = element('div', 'app-actions');
+  if (app.tier === 'copy') { const b = element('button', '', '复制接入指引'); b.onclick = () => copyText(app.guide, '已复制接入指引'); actions.append(b); }
+  card.append(actions);
+  return card;
+}
+function renderApps() {
+  const c = appConfigs?.connection;
+  $('conn-base').textContent = c?.baseUrl || '—';
+  $('conn-key').textContent = c?.apiKey || '—';
+  $('conn-count').textContent = c ? `${c.count} 个` : '—';
+  $('conn-models').textContent = (c?.models || []).join('\n') || '—';
+  $('app-list').replaceChildren();
+  if (appLoading && !appConfigs) { $('app-list').append(element('p', 'empty', '正在读取应用配置…')); return; }
+  if (!appConfigs) { $('app-list').append(element('p', 'empty', '等待服务启动完成后读取配置，或点击右上角「刷新」。')); return; }
+  for (const app of appConfigs.apps) $('app-list').append(appCard(app));
+}
+$('nav-models').onclick = () => switchView('models');
+$('nav-apps').onclick = () => switchView('apps');
+$('apps-refresh').onclick = () => { appConfigs = null; loadApps(); };
+for (const el of document.querySelectorAll('.copier')) el.onclick = () => {
+  const t = el.dataset.copy;
+  const text = t === 'key' ? appConfigs?.connection?.apiKey : t === 'models' ? (appConfigs?.connection?.models || []).join('\n') : appConfigs?.connection?.baseUrl;
+  copyText(text, '已复制');
+};

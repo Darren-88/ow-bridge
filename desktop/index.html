@@ -6,17 +6,33 @@
 <body>
 <aside>
   <div class="brand-mark" aria-hidden="true"></div><h1>OW Bridge</h1><p class="tagline">让 WorkBuddy 连接 OpenCode</p>
-  <div class="section-current">▦ &nbsp; 模型与服务</div>
+  <nav class="nav">
+    <button id="nav-models" class="nav-item active">▦ 模型与服务</button>
+    <button id="nav-apps" class="nav-item">☰ 应用配置</button>
+  </nav>
   <div class="sidebar-bottom"><label class="toggle-label">使用系统代理 <input id="proxy" type="checkbox" role="switch"></label><p class="creator">使用问题在抖音/视频号<br>@娄老师说的对</p></div>
 </aside>
 <main>
-  <header><div><h2>免费模型</h2><p class="subtitle">自动发现，保留每一个模型的状态。</p></div><div class="actions"><button id="refresh">读取免费模型</button><button id="probe">检测全部</button></div></header>
-  <div class="service-status"><span id="service-dot" class="dot"></span><span id="service-text">正在启动隔离模型服务</span><button id="restart" hidden>重试</button></div>
-  <section class="toolbar"><div class="metrics"><div><b id="discovered">0</b><span>已发现</span></div><div><b id="available">0</b><span>可用</span></div><div><b id="pending">0</b><span>待检测</span></div></div><button id="import" class="primary">导入 WorkBuddy</button></section>
-  <div id="feedback" role="status" hidden></div>
-  <section id="models" aria-label="模型列表"></section>
-  <section id="details" hidden></section>
-  <footer><p id="sync">首次读取和检测完成后自动导入 WorkBuddy</p><p class="note">启动后自动发送简短请求检测，会使用少量免费额度，不代表工具流程已验证。耗时为完整请求用时，非首字延迟。不可用模型仅在本窗口保留，不供 WorkBuddy 使用；剩余额度暂不可查询。</p></footer>
+  <div id="view-models" class="view">
+    <header><div><h2>免费模型</h2><p class="subtitle">自动发现，保留每一个模型的状态。</p></div><div class="actions"><button id="refresh">读取免费模型</button><button id="probe">检测全部</button></div></header>
+    <div class="service-status"><span id="service-dot" class="dot"></span><span id="service-text">正在启动隔离模型服务</span><button id="restart" hidden>重试</button></div>
+    <section class="toolbar"><div class="metrics"><div><b id="discovered">0</b><span>已发现</span></div><div><b id="available">0</b><span>可用</span></div><div><b id="pending">0</b><span>待检测</span></div></div><button id="import" class="primary">导入 WorkBuddy</button></section>
+    <div id="feedback" role="status" hidden></div>
+    <section id="models" aria-label="模型列表"></section>
+    <section id="details" hidden></section>
+    <footer><p id="sync">首次读取和检测完成后自动导入 WorkBuddy</p><p class="note">启动后自动发送简短请求检测，会使用少量免费额度，不代表工具流程已验证。耗时为完整请求用时，非首字延迟。不可用模型仅在本窗口保留，不供 WorkBuddy 使用；剩余额度暂不可查询。</p></footer>
+  </div>
+  <div id="view-apps" class="view" hidden>
+    <header><div><h2>应用配置</h2><p class="subtitle">把发现的免费模型推送到其它 AI 应用。</p></div><div class="actions"><button id="apps-refresh">刷新</button></div></header>
+    <section class="conn-card">
+      <div class="conn-row"><span class="conn-label">Base URL</span><code id="conn-base">—</code><button class="copier" data-copy="base">复制</button></div>
+      <div class="conn-row"><span class="conn-label">API Key</span><code id="conn-key">—</code><button class="copier" data-copy="key">复制</button></div>
+      <div class="conn-row"><span class="conn-label">可用模型</span><span id="conn-count" class="conn-count">—</span><button class="copier" data-copy="models">复制全部</button></div>
+      <code id="conn-models" class="conn-models">—</code>
+    </section>
+    <div id="app-feedback" role="status" hidden></div>
+    <section id="app-list" aria-label="应用列表"></section>
+  </div>
 </main>
 <script src="activity.cjs"></script>
 <script src="renderer.js"></script>

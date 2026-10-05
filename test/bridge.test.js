@@ -13,11 +13,16 @@ const models = [{ id: 'opencode/test-free', name: 'Test', context: 1000, output:
 const tools = [{ type: 'function', function: { name: 'write_file', description: 'Write text', parameters: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] } } }];
 const body = { model: models[0].id, messages: [{ role: 'user', content: 'Write a file' }], tools };
 
-test('message history preserves roles and tool result IDs, rejects image loss', () => {
+test('message history preserves roles and tool result IDs, silently drops unsupported images', () => {
   const messages = [...body.messages, { role: 'assistant', content: null, tool_calls: [{ id: 'call_a', type: 'function', function: { name: 'write_file', arguments: '{"path":"a"}' } }] }, { role: 'tool', tool_call_id: 'call_a', content: 'done' }];
   const request = prepare({ ...body, messages }, models);
   assert.equal(JSON.parse(request.text)[2].tool_call_id, 'call_a');
-  assert.throws(() => prepare({ ...body, messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'x' } }] }] }, models), /does not declare image input/);
+  // Models without image support silently drop image parts instead of throwing.
+  const imageDrop = prepare({ ...body, messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'x' } }] }] }, models);
+  const parsed = JSON.parse(imageDrop.text);
+  assert.equal(parsed.length, 1);
+  assert.equal(parsed[0].role, 'user');
+  assert.equal(parsed[0].content, '');
 });
 test('tool calls validated; none, forced and required are enforced', () => {
   const call = JSON.stringify({ content: '', calls: [{ name: 'write_file', arguments: { path: 'x' } }] });

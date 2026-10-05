@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog, clipboard } = require('electron');
 const { fork, execFile } = require('node:child_process');
 const fs = require('node:fs/promises');
 const { createWriteStream } = require('node:fs');
@@ -60,7 +60,7 @@ async function readState() {
   } catch {}
 }
 async function action(name, value) {
-  if (!['refresh', 'probe', 'import', 'system-proxy', 'restart', 'choose-config'].includes(name)) throw new Error('未知操作');
+  if (!['refresh', 'probe', 'import', 'system-proxy', 'restart', 'choose-config', 'app-configs'].includes(name)) throw new Error('未知操作');
   if (actionBusy) throw new Error('请等待当前操作完成');
   if (name === 'restart') {
     actionBusy = name; publish();
@@ -80,9 +80,11 @@ async function action(name, value) {
     }
     const key = (await fs.readFile(path.join(dataDir, 'api-key'), 'utf8')).trim();
     const endpoint = `http://127.0.0.1:${Number(process.env.BUDDY_PORT || 41980)}`;
-    const response = await fetch(`${endpoint}/admin/${name}`, { method: 'POST',
+    const method = name === 'app-configs' ? 'GET' : 'POST';
+    const body = name === 'system-proxy' ? { enabled: value } : modelsFile ? { modelsFile } : {};
+    const response = await fetch(`${endpoint}/admin/${name}`, { method,
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(name === 'system-proxy' ? { enabled: value } : modelsFile ? { modelsFile } : {}), signal: AbortSignal.timeout(150000) });
+      ...(method === 'POST' ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(150000) });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error?.message || `HTTP ${response.status}`);
     await readState();
@@ -155,6 +157,12 @@ else {
         });
         return { ok: false, error: error.message };
       }
+    });
+    ipcMain.handle('clipboard-write', async (event, text) => {
+      if (event.sender !== window?.webContents || event.senderFrame !== window.webContents.mainFrame || event.senderFrame.url !== page) throw new Error('拒绝未知来源');
+      if (typeof text !== 'string') throw new Error('文本无效');
+      clipboard.writeText(text);
+      return { ok: true };
     });
     const trayIcon = nativeImage.createFromPath(path.join(__dirname, process.platform === 'darwin' ? 'trayTemplate.png' : 'tray.png'));
     if (process.platform === 'darwin') trayIcon.setTemplateImage(true);

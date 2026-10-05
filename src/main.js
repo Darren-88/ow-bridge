@@ -12,6 +12,7 @@ import { prepare, BridgeError } from './protocol.js';
 import { PROBE_TIMEOUT, probeBody, probeModel, probeFailure, formatUnsupported } from './probe.js';
 import { modelResult, withRequestMeta } from './model-status.js';
 import { atomicWrite, syncModels } from './sync.js';
+import { describeApps, detectApps } from './app-config.js';
 
 const dataDir = process.env.BUDDY_DATA_DIR || dataDirectory();
 const port = Number(process.env.BUDDY_PORT || 41980);
@@ -283,8 +284,13 @@ try {
     proxyEnv: startupProxyEnv,
     log: message => log.write(`${new Date().toISOString()} ${message}\n`),
   });
+  const detectAppInstall = detectApps({ home: os.homedir(), platform: process.platform });
+  async function appConfigs() {
+    const detected = await detectAppInstall();
+    return describeApps({ endpoint, key, models: publishedModels(), home: os.homedir(), platform: process.platform, detected });
+  }
   server = createServer({ key, backend: { complete: (...args) => runtime.backend.complete(...args) }, getModels: publishedModels, refresh: readModels, importModels, setSystemProxy,
-    status: () => state, probe: startProbes, onResult: record, onActivity: noteActivity });
+    status: () => state, probe: startProbes, appConfigs, onResult: record, onActivity: noteActivity });
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
   update({ message: '正在启动隔离模型服务' });
   runtime = attachTranslator(await startBackend(binary, dataDir, log, startupProxyEnv));

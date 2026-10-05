@@ -38,10 +38,10 @@ export function prepare(body, models) {
     if (!['system', 'developer', 'user', 'assistant', 'tool'].includes(m.role)) throw new BridgeError('Unknown message role');
     let content = m.content ?? '';
     if (Array.isArray(content)) {
-      content = content.map((p, partIndex) => {
+      const parts = content.map((p, partIndex) => {
         if (p?.type === 'text' && typeof p.text === 'string') return p.text;
-        if (p?.type !== 'image_url') throw new BridgeError('Unsupported message content type', 400, 'unsupported_content');
-        if (!model.images) throw new BridgeError('OpenCode does not declare image input for this model', 400, 'unsupported_content');
+        if (p?.type !== 'image_url') return null;
+        if (!model.images) return null; // silently drop images for models that don't support them
         const url = p.image_url?.url;
         // Accept inline images only: never turn untrusted file URLs into native file reads.
         const match = typeof url === 'string' && /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/]+={0,2})$/.exec(url);
@@ -50,7 +50,8 @@ export function prepare(body, models) {
         const filename = `message-${messageIndex + 1}-image-${partIndex + 1}.${match[1].split('/')[1]}`;
         images.push({ type: 'file', mime: match[1], url, filename });
         return `[Attached image: ${filename}]`;
-      }).join('\n');
+      }).filter(Boolean).join('\n');
+      content = parts;
     }
     if (typeof content !== 'string') throw new BridgeError('Invalid message content');
     return { role: m.role, content, ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}), ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}), ...(m.name ? { name: m.name } : {}) };
