@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node src/main.js",
     "test": "node --test test/*.test.js",
-    "build:mac": "electron-builder --mac zip --arm64 --publish never && node scripts/verify-mac.mjs",
+    "build:mac:arm64": "electron-builder --mac zip --arm64 --publish never && node scripts/verify-mac.mjs",
+    "build:mac:x64": "electron-builder --mac zip --x64 --publish never",
     "desktop": "electron .",
     "build:win": "electron-builder --win nsis --x64 --publish never",
     "build:win:arm64": "electron-builder --win nsis --arm64 --publish never",
@@ -20,7 +21,7 @@
     "undici": "^7.30.0"
   },
   "devDependencies": {
-    "electron": "44.4.5",
+    "electron": "33.4.0",
     "electron-builder": "26.15.3"
   },
   "description": "OW Bridge — 让 WorkBuddy 使用 OpenCode 免费模型",
@@ -42,7 +43,7 @@
     "mac": {
       "category": "public.app-category.utilities",
       "identity": "-",
-      "minimumSystemVersion": "13.0",
+      "minimumSystemVersion": "11.0",
       "hardenedRuntime": false,
       "notarize": false
     },
